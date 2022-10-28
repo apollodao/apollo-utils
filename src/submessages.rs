@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use core::fmt::Debug;
-use cosmwasm_std::{Event, StdError, StdResult};
+use cosmwasm_std::{Event, StdError, StdResult, SubMsgResponse};
 
 /// Parse an attribute string from an [`Event`]
 pub fn parse_attribute_value<T: FromStr<Err = E>, E: Debug>(
@@ -28,4 +28,17 @@ pub fn parse_attribute_value<T: FromStr<Err = E>, E: Debug>(
             e
         ))
     })
+}
+
+/// Find event from SubMsg response
+///
+/// Returns a [`StdResult`] containing reference to the event if found otherwise [`StdError`]
+pub fn find_event<'a>(res: &'a SubMsgResponse, event_type: &str) -> StdResult<&'a Event> {
+    res.events
+        .iter()
+        .find(|event| event.ty == event_type)
+        .ok_or(StdError::generic_err(format!(
+            "No `{}` event found",
+            event_type
+        )))
 }
