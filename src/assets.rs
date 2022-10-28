@@ -28,6 +28,32 @@ pub fn to_asset_list(
     Ok(assets)
 }
 
+/// Converts an `AssetList` into a `Vec<Coin>` and a `Vec<Cw20Coin>`.
+pub fn separate_natives_and_cw20s(assets: &AssetList) -> (Vec<Coin>, Vec<Cw20Coin>) {
+    let mut coins = vec![];
+    let mut cw20s = vec![];
+
+    for asset in assets.into_iter() {
+        match &asset.info {
+            AssetInfo::Native(token) => {
+                coins.push(Coin {
+                    denom: token.to_string(),
+                    amount: asset.amount,
+                });
+            }
+            AssetInfo::Cw20(addr) => {
+                cw20s.push(Cw20Coin {
+                    address: addr.to_string(),
+                    amount: asset.amount,
+                });
+            }
+            _ => {}
+        }
+    }
+
+    (coins, cw20s)
+}
+
 /// Assert that a specific native token in the form of an `Asset` was sent to the contract.
 pub fn assert_native_token_received(info: &MessageInfo, asset: &Asset) -> StdResult<()> {
     let coin: Coin = asset.try_into()?;
