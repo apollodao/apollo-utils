@@ -113,3 +113,15 @@ pub fn assert_native_coin(asset: &Asset) -> StdResult<Coin> {
         _ => Err(StdError::generic_err("Asset is not a native token")),
     }
 }
+
+/// Assert that an AssetInfo is a native token.
+///
+/// ### Returns
+/// Returns an error if the AssetInfo is not a native token.
+/// Returns a `StdResult<String>` containing the denom if it is a native token.
+pub fn assert_native_asset_info(asset_info: &AssetInfo) -> StdResult<String> {
+    match asset_info {
+        AssetInfo::Native(denom) => Ok(denom.clone()),
+        _ => Err(StdError::generic_err("AssetInfo is not a native token")),
+    }
+}
