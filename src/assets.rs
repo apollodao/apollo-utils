@@ -125,3 +125,16 @@ pub fn assert_native_asset_info(asset_info: &AssetInfo) -> StdResult<String> {
         _ => Err(StdError::generic_err("AssetInfo is not a native token")),
     }
 }
+
+/// Merge duplicates of assets in an `AssetList`.
+///
+/// ### Returns
+/// Returns the asset list with all duplicates merged.
+pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetList> {
+    let asset_list = assets.into();
+    let mut merged = AssetList::new();
+    for asset in asset_list {
+        merged.add(asset)?;
+    }
+    Ok(merged)
+}
