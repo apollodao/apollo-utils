@@ -88,3 +88,28 @@ pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
         _ => Err(StdError::generic_err("Unsupported asset type")),
     }
 }
+
+/// Assert that all assets in the `AssetList` are native tokens.
+///
+/// ### Returns
+/// Returns an error if any of the assets are not native tokens.
+/// Returns a `StdResult<Vec<Coin>>` containing the assets as coins if they are all
+/// native tokens.
+pub fn assert_only_native_coins(assets: AssetList) -> StdResult<Vec<Coin>> {
+    assets
+        .into_iter()
+        .map(assert_native_coin)
+        .collect::<StdResult<Vec<Coin>>>()
+}
+
+/// Assert that an asset is a native token.
+///
+/// ### Returns
+/// Returns an error if the asset is not a native token.
+/// Returns a `StdResult<Coin>` containing the asset as a coin if it is a native token.
+pub fn assert_native_coin(asset: &Asset) -> StdResult<Coin> {
+    match asset.info {
+        AssetInfo::Native(_) => asset.try_into(),
+        _ => Err(StdError::generic_err("Asset is not a native token")),
+    }
+}
