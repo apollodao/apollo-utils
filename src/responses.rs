@@ -14,7 +14,13 @@ pub fn merge_responses(responses: Vec<Response>) -> Response {
     merged
 }
 
-// Utility macro for response_prefix! macro below
+/// Utility macro for response_prefix! macro.
+/// This horrible macro makes the even more horrible macros response! and response_prefix! work.
+///
+/// It's not intended to be used outside of this crate but must be imported along with
+/// response_prefix! for response! to become visible.
+///
+/// BIG SHOUTS to [durka](https://github.com/rust-lang/rust/issues/35853#issuecomment-415993963)
 #[macro_export]
 macro_rules! with_dollar_sign {
     ( $( $body:tt )* ) => {
@@ -34,16 +40,16 @@ macro_rules! response_prefix {
                 /// Macro for generating Response objects with Events, Attributes and Messages
                 ///
                 /// Variants
-                ///  - response!() - returns a new, empty Response
-                ///  - response!("event") - returns a new Response with Event named "event"
-                ///  - response!(resp, "event") - attaches Event "event" to Response `resp`
-                ///  - response!("event", [(k, v), (j, u), ...]) - returns Response with
+                ///  - `response!()` - returns a new, empty Response
+                ///  - `response!("event")` - returns a new Response with Event named "event"
+                ///  - `response!(resp, "event")` - attaches Event "event" to Response `resp`
+                ///  - `response!("event", [(k, v), (j, u), ...])` - returns Response with
                 ///    Event "event" and Attributes from series (not array) of tuples
-                ///  - response!(resp, "event", [(k, v), (j, u), ...]) - same as above but
+                ///  - `response!(resp, "event", [(k, v), (j, u), ...])` - same as above but
                 ///    attaching to existing Response `resp`
-                ///  - response!("event", [(k, v), (j, u), ...], [m, n, ...]) - returns Response
+                ///  - `response!("event", [(k, v), (j, u), ...], [m, n, ...])` - returns Response
                 ///    with Event "event", Attributes `(k, v)` etc., and Messages `m`, `n`, etc.
-                ///  - response!(resp, "event", [(k, v), (j, u), ...], [m, n, ...]) - same as
+                ///  - `response!(resp, "event", [(k, v), (j, u), ...], [m, n, ...])` - same as
                 ///    above but attached to Response `resp`
                 macro_rules! response {
                     () => {
@@ -94,19 +100,43 @@ macro_rules! response_prefix {
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{Attribute, CosmosMsg, Empty, Event, Response};
+    use cosmwasm_std::{attr, Empty, Event, Response};
 
-    response_prefix!("apollo/test");
+    response_prefix!("foo");
+
+    type DefaultResponse = Response<Empty>;
 
     #[test]
     fn test_empty_response() {
-        let resp = Response::<Empty>::new();
+        let resp = DefaultResponse::new();
         assert_eq!(resp, response!())
     }
 
     #[test]
     fn test_response_event() {
         let event = response!("test").events[0].clone();
-        assert_eq!(Event::new("apollo/test/test"), event)
+        assert_eq!(Event::new("foo/test"), event)
+    }
+
+    #[test]
+    fn test_existing_response() {
+        let resp = response!();
+        let event = Event::new("foo/test");
+        assert_eq!(resp.clone().add_event(event), response!(resp, "test"))
+    }
+
+    #[test]
+    fn test_add_attributes() {
+        let resp = response!();
+        let attrs = vec![attr("foo", "420"), attr("bar", "69"), attr("test", "123")];
+        let event = Event::new("foo/test");
+
+        let event = event.add_attributes(attrs.clone());
+        let resp = resp.add_attributes(attrs).add_event(event);
+
+        assert_eq!(
+            resp,
+            response!("test", [("foo", "420"), ("bar", "69"), ("test", "123")])
+        )
     }
 }
