@@ -52,9 +52,11 @@ macro_rules! response_prefix {
                 ///  - `response!(resp, "event", [(k, v), (j, u), ...], [m, n, ...])` - same as
                 ///    above but attached to Response `resp`
                 macro_rules! response {
+                    // ()
                     () => {
                         cosmwasm_std::Response::<cosmwasm_std::Empty>::new()
                     };
+                    // (response, event, [attrs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ] ) => {
                         {
                             // needed because things get weird with macros
@@ -71,15 +73,19 @@ macro_rules! response_prefix {
                             $d response.add_attributes(attrs).add_event(event)
                         }
                     };
+                    // (response, event)
                     ( $d response:expr, $d event_name:literal ) => {
                         response!($d response, $d event_name, [])
                     };
+                    // (event)
                     ( $d event_name:literal ) => {
                         response!(response!(), $d event_name)
                     };
+                    // (event, [attrs])
                     ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ] ) => {
                         response!(response!(), $d event_name, [ $d(($d key, $d value)),* ])
                     };
+                    // (response, event, [attrs], [msgs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ] ) => {
                         {
                             let mut msgs: Vec<cosmwasm_std::CosmosMsg> = Vec::new();
@@ -89,9 +95,11 @@ macro_rules! response_prefix {
                             response!($d response, $d event_name, [ $d(($d key, $d value)),* ]).add_messages(msgs)
                         }
                     };
+                    // (event, [attrs], [msgs])
                     ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ] ) => {
                         response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*])
                     };
+                    // (response, event, [attrs], [msgs], [submsgs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ], [ $d( $d submsg:expr ),* ] ) => {
                         {
                             let mut submsgs: Vec<cosmwasm_std::SubMsg> = Vec::new();
@@ -101,6 +109,7 @@ macro_rules! response_prefix {
                             response!($d response, $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*]).add_submessages(submsgs)
                         }
                     };
+                    // (event, [attrs], [msgs], [submsgs])
                     ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ], [ $d( $d submsg:expr ),* ] ) => {
                         response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*], [$d($d submsg),*])
                     };
