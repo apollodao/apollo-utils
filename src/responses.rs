@@ -56,6 +56,18 @@ macro_rules! response_prefix {
                     () => {
                         cosmwasm_std::Response::<cosmwasm_std::Empty>::new()
                     };
+                    // (event)
+                    ( $d event_name:literal ) => {
+                        response!(response!(), $d event_name)
+                    };
+                    // (response, event)
+                    ( $d response:expr, $d event_name:literal ) => {
+                        response!($d response, $d event_name, [])
+                    };
+                    // (event, [attrs])
+                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ] ) => {
+                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ])
+                    };
                     // (response, event, [attrs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ] ) => {
                         {
@@ -73,17 +85,9 @@ macro_rules! response_prefix {
                             $d response.add_attributes(attrs).add_event(event)
                         }
                     };
-                    // (response, event)
-                    ( $d response:expr, $d event_name:literal ) => {
-                        response!($d response, $d event_name, [])
-                    };
-                    // (event)
-                    ( $d event_name:literal ) => {
-                        response!(response!(), $d event_name)
-                    };
-                    // (event, [attrs])
-                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ] ) => {
-                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ])
+                    // (event, [attrs], [msgs])
+                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ] ) => {
+                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*])
                     };
                     // (response, event, [attrs], [msgs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ] ) => {
@@ -95,9 +99,9 @@ macro_rules! response_prefix {
                             response!($d response, $d event_name, [ $d(($d key, $d value)),* ]).add_messages(msgs)
                         }
                     };
-                    // (event, [attrs], [msgs])
-                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ] ) => {
-                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*])
+                    // (event, [attrs], [msgs], [submsgs])
+                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ], [ $d( $d submsg:expr ),* ] ) => {
+                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*], [$d($d submsg),*])
                     };
                     // (response, event, [attrs], [msgs], [submsgs])
                     ( $d response:expr, $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ], [ $d( $d submsg:expr ),* ] ) => {
@@ -109,10 +113,6 @@ macro_rules! response_prefix {
                             response!($d response, $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*]).add_submessages(submsgs)
                         }
                     };
-                    // (event, [attrs], [msgs], [submsgs])
-                    ( $d event_name:literal, [ $d( ($d key:literal, $d value:expr) ),* ], [ $d( $d msg:expr ),* ], [ $d( $d submsg:expr ),* ] ) => {
-                        response!(response!(), $d event_name, [ $d(($d key, $d value)),* ], [$d($d msg),*], [$d($d submsg),*])
-                    };
                 }
             };
         }
@@ -121,15 +121,13 @@ macro_rules! response_prefix {
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{attr, Empty, Event, Response};
+    use cosmwasm_std::{attr, CosmosMsg, Empty, Event, Response};
 
     response_prefix!("foo");
 
-    type DefaultResponse = Response<Empty>;
-
     #[test]
     fn test_empty_response() {
-        let resp = DefaultResponse::new();
+        let resp = Response::<Empty>::new();
         assert_eq!(resp, response!())
     }
 
@@ -158,6 +156,34 @@ mod tests {
         assert_eq!(
             resp,
             response!("test", [("foo", "420"), ("bar", "69"), ("test", "123")])
+        )
+    }
+
+    #[test]
+    fn test_add_messages() {
+        let resp = response!();
+        let event = Event::new("foo/test");
+        let msgs = vec![
+            CosmosMsg::Bank(cosmwasm_std::BankMsg::Burn { amount: vec![] }),
+            CosmosMsg::Wasm(cosmwasm_std::WasmMsg::ClearAdmin {
+                contract_addr: "lol".to_string(),
+            }),
+        ];
+
+        let resp = resp.add_event(event).add_messages(msgs);
+
+        assert_eq!(
+            resp,
+            response!(
+                "test",
+                [],
+                [
+                    CosmosMsg::Bank(cosmwasm_std::BankMsg::Burn { amount: vec![] }),
+                    CosmosMsg::Wasm(cosmwasm_std::WasmMsg::ClearAdmin {
+                        contract_addr: "lol".to_string()
+                    })
+                ]
+            )
         )
     }
 }
