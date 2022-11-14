@@ -47,7 +47,6 @@ pub fn separate_natives_and_cw20s(assets: &AssetList) -> (Vec<Coin>, Vec<Cw20Coi
                     amount: asset.amount,
                 });
             }
-            _ => {}
         }
     }
 
@@ -85,7 +84,6 @@ pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
             assert_native_token_received(info, asset)?;
             Ok(Response::new())
         }
-        _ => Err(StdError::generic_err("Unsupported asset type")),
     }
 }
 
