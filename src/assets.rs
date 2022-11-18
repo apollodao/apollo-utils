@@ -1,4 +1,4 @@
-use cosmwasm_std::{Api, Coin, Env, MessageInfo, Response, StdError, StdResult};
+use cosmwasm_std::{Api, Coin, CosmosMsg, Env, MessageInfo, Response, StdError, StdResult};
 use cw20::Cw20Coin;
 use cw_asset::{Asset, AssetInfo, AssetList};
 
@@ -85,6 +85,38 @@ pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
             Ok(Response::new())
         }
     }
+}
+
+/// Returns an `Option` with a [`CosmosMsg`] that transfers the asset
+/// to `env.contract.address`. If the asset is a native token, it checks
+/// the that the funds were recieved in `info.funds` and returns `None`.
+fn receive_asset_msg(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<Option<CosmosMsg>> {
+    match &asset.info {
+        AssetInfo::Cw20(_coin) => {
+            Some(asset.transfer_from_msg(info.sender.clone(), env.contract.address.to_string()))
+                .transpose()
+        }
+        AssetInfo::Native(_token) => {
+            //Here we just assert that the native token was sent with the contract call
+            assert_native_token_received(info, asset)?;
+            Ok(None)
+        }
+    }
+}
+
+/// Verifies that all native tokens were a sent in `info.funds` and returns
+/// a `Response` with a messages that transfers all Cw20 tokens to
+/// `env.contract.address`.
+pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdResult<Response> {
+    let msgs = assets
+        .into_iter()
+        .map(|asset| receive_asset_msg(info, env, asset))
+        .collect::<StdResult<Vec<Option<_>>>>()?
+        .into_iter()
+        .filter_map(|msg| msg)
+        .collect::<Vec<_>>();
+
+    Ok(Response::new().add_messages(msgs))
 }
 
 /// Assert that all assets in the `AssetList` are native tokens.
