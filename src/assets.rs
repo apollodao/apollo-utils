@@ -93,7 +93,7 @@ pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
 /// Returns an error if any of the assets are not native tokens.
 /// Returns a `StdResult<Vec<Coin>>` containing the assets as coins if they are all
 /// native tokens.
-pub fn assert_only_native_coins(assets: AssetList) -> StdResult<Vec<Coin>> {
+pub fn assert_only_native_coins(assets: &AssetList) -> StdResult<Vec<Coin>> {
     assets
         .into_iter()
         .map(assert_native_coin)
