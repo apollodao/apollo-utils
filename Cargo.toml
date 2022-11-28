@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 cosmwasm-std = "1.1"
 cw20 = "0.16"
-cw-asset = { git="https://github.com/apollodao/cw-asset.git" }
+cw-asset = { git="https://github.com/apollodao/cw-asset.git", rev = "5e51773da42ef82faa67576454e8c4b0971097f2" }
