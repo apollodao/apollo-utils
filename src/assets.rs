@@ -50,6 +50,10 @@ pub fn separate_natives_and_cw20s(assets: &AssetList) -> (Vec<Coin>, Vec<Cw20Coi
         }
     }
 
+    // Cosmos SDK coins need to be sorted and currently wasmd does not sort
+    // CosmWasm coins when converting into SDK coins.
+    coins.sort_by(|a, b| a.denom.cmp(&b.denom));
+
     (coins, cw20s)
 }
 
