@@ -49,7 +49,8 @@ macro_rules! contract_helper {
     };
 }
 
-mod tests {
+#[cfg(test)]
+pub mod tests {
     use cosmwasm_std::{testing::MockApi, Empty};
 
     contract_helper!(TestHelper, TestHelperUnchecked, Empty);
