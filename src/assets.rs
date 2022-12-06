@@ -63,11 +63,40 @@ pub fn assert_native_token_received(info: &MessageInfo, asset: &Asset) -> StdRes
 
     if !info.funds.contains(&coin) {
         return Err(StdError::generic_err(format!(
-            "Assert native token receive failed for asset: {}",
+            "Assert native token received failed for asset: {}",
             asset
         )));
     }
     Ok(())
+}
+
+/// Assert that all assets in the `AssetList` are native tokens, and that all of
+/// them were also sent in the correct amount in `info.funds`.
+/// Does not error if there are additional native tokens in `info.funds` that
+/// are not in the `AssetList`.
+///
+/// ### Returns
+/// Returns a `Vec<Coin>` with all the native tokens in `info.funds`.
+///
+/// ### Errors
+/// Returns an error if any of the assets in the `AssetList` are not native
+/// tokens.
+/// Returns an error if any of the native tokens in the `AssetList` were not
+/// sent in `info.funds`.
+pub fn assert_native_tokens_received(
+    info: &MessageInfo,
+    assets: &AssetList,
+) -> StdResult<Vec<Coin>> {
+    let coins = assert_only_native_coins(assets)?;
+    for coin in &coins {
+        if !info.funds.contains(&coin) {
+            return Err(StdError::generic_err(format!(
+                "Assert native token received failed for asset: {}",
+                coin
+            )));
+        }
+    }
+    Ok(info.funds.clone())
 }
 
 /// Calls TransferFrom on an Asset if it is a Cw20. If it is a native we just
@@ -171,4 +200,53 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
         merged.add(asset)?;
     }
     Ok(merged)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::{testing::mock_info, Addr, Coin};
+    use cw_asset::{Asset, AssetInfo, AssetList};
+    use test_case::test_case;
+
+    #[test_case(
+        vec![Coin::new(1000, "uosmo"), Coin::new(1000, "uatom")].into(),
+        vec![Coin::new(1000, "uosmo"), Coin::new(1000, "uatom")]
+        => Ok(());
+        "Only native tokens, all sent")]
+    #[test_case(
+        vec![Coin::new(1000, "uosmo"), Coin::new(1000, "uatom")].into(),
+        vec![Coin::new(1000, "uosmo"), Coin::new(10, "uatom")]
+        => Err(StdError::generic_err("Assert native token received failed for asset: 1000uatom"));
+        "Only native tokens, some not sent")]
+    #[test_case(
+        vec![Coin::new(1000, "uosmo"), Coin::new(1000, "uatom")].into(),
+        vec![Coin::new(1000, "uosmo")]
+        => Err(StdError::generic_err("Assert native token received failed for asset: 1000uatom"));
+        "Only native tokens, one missing coin")]
+    #[test_case(
+        vec![Asset::new(AssetInfo::Native("uosmo".into()), 1000u128), Asset::new(AssetInfo::cw20(Addr::unchecked("apollo")), 1000u128)].into(),
+        vec![Coin::new(1000, "uosmo")]
+        => Err(StdError::generic_err("Asset is not a native token"));
+        "Mixed native and cw20 tokens")]
+    #[test_case(
+        AssetList::new(),
+        vec![]
+        => Ok(());
+        "Empty asset list, empty funds")]
+    #[test_case(
+        vec![Coin::new(1000, "uosmo")].into(),
+        vec![]
+        => Err(StdError::generic_err("Assert native token received failed for asset: 1000uosmo"));
+        "1 native token in asset list, empty funds")]
+    #[test_case(
+        AssetList::new(),
+        vec![Coin::new(1000, "uosmo")]
+        => Ok(());
+        "Empty asset list, 1 native token in funds")]
+    fn test_assert_native_tokens_received(assets: AssetList, funds: Vec<Coin>) -> StdResult<()> {
+        let info = mock_info("addr", &funds);
+        assert_native_tokens_received(&info, &assets)?;
+        Ok(())
+    }
 }
