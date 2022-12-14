@@ -9,7 +9,7 @@ edition = "2021"
 cosmwasm-std = "1.1"
 cosmwasm-schema = "1.1.3"
 cw20 = "0.16"
-cw-asset = { git="https://github.com/apollodao/cw-asset.git", rev = "5e51773da42ef82faa67576454e8c4b0971097f2" }
+cw-asset = { git="https://github.com/apollodao/cw-asset.git", rev = "057fb193013ad4adfc25063b99960972d1d208bc" }
 
 [dev-dependencies]
 test-case = "2.2.2"
