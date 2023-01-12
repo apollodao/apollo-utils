@@ -1,4 +1,6 @@
-use cosmwasm_std::{Api, Coin, CosmosMsg, Env, MessageInfo, Response, StdError, StdResult};
+use cosmwasm_std::{
+    attr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError, StdResult,
+};
 use cw20::Cw20Coin;
 use cw_asset::{Asset, AssetInfo, AssetList};
 
@@ -106,16 +108,20 @@ pub fn assert_native_tokens_received(
 /// Returns a response with the transfer_from message if the asset is a Cw20.
 /// Returns an empty response if the asset is a native token.
 pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<Response> {
+    let event = Event::new("apollo/utils/assets").add_attributes(vec![
+        attr("action", "receive_asset"),
+        attr("asset", asset.to_string()),
+    ]);
     match &asset.info {
         AssetInfo::Cw20(_coin) => {
             let msg =
                 asset.transfer_from_msg(info.sender.clone(), env.contract.address.to_string())?;
-            Ok(Response::new().add_message(msg))
+            Ok(Response::new().add_message(msg).add_event(event))
         }
         AssetInfo::Native(_token) => {
             //Here we just assert that the native token was sent with the contract call
             assert_native_token_received(info, asset)?;
-            Ok(Response::new())
+            Ok(Response::new().add_event(event))
         }
     }
 }
@@ -141,6 +147,10 @@ fn receive_asset_msg(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
 /// a `Response` with a messages that transfers all Cw20 tokens to
 /// `env.contract.address`.
 pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdResult<Response> {
+    let event = Event::new("apollo/utils/assets").add_attributes(vec![
+        attr("action", "receive_assets"),
+        attr("assets", assets.to_string()),
+    ]);
     let msgs = assets
         .into_iter()
         .map(|asset| receive_asset_msg(info, env, asset))
@@ -149,7 +159,7 @@ pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdR
         .filter_map(|msg| msg)
         .collect::<Vec<_>>();
 
-    Ok(Response::new().add_messages(msgs))
+    Ok(Response::new().add_messages(msgs).add_event(event))
 }
 
 /// Assert that all assets in the `AssetList` are native tokens.
