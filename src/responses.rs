@@ -13,3 +13,17 @@ pub fn merge_responses(responses: Vec<Response>) -> Response {
     }
     merged
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_empty_responses() {
+        let merged = merge_responses(vec![]);
+
+        assert!(merged.attributes.is_empty());
+        assert!(merged.events.is_empty());
+        assert!(merged.messages.is_empty());
+    }
+}

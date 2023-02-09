@@ -1,15 +1,24 @@
 use cosmwasm_std::{
-    attr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError, StdResult,
+    attr,
+    Api,
+    Coin,
+    CosmosMsg,
+    Env,
+    Event,
+    MessageInfo,
+    Response,
+    StdError,
+    StdResult,
 };
 use cw20::Cw20Coin;
-use cw_asset::{Asset, AssetInfo, AssetList};
+use cw_asset::{ Asset, AssetInfo, AssetList };
 
 /// Create an AssetList from a `Vec<Coin>` and an optional `Vec<Cw20Coin>`.
 /// Removes duplicates from each of the inputs.
 pub fn to_asset_list(
     api: &dyn Api,
     coins: Option<&Vec<Coin>>,
-    cw20s: Option<&Vec<Cw20Coin>>,
+    cw20s: Option<&Vec<Cw20Coin>>
 ) -> StdResult<AssetList> {
     let mut assets = AssetList::new();
 
@@ -21,10 +30,9 @@ pub fn to_asset_list(
 
     if let Some(cw20s) = cw20s {
         for cw20 in cw20s {
-            assets.add(&Asset::new(
-                AssetInfo::Cw20(api.addr_validate(&cw20.address)?),
-                cw20.amount,
-            ))?;
+            assets.add(
+                &Asset::new(AssetInfo::Cw20(api.addr_validate(&cw20.address)?), cw20.amount)
+            )?;
         }
     }
     Ok(assets)
@@ -64,10 +72,11 @@ pub fn assert_native_token_received(info: &MessageInfo, asset: &Asset) -> StdRes
     let coin: Coin = asset.try_into()?;
 
     if !info.funds.contains(&coin) {
-        return Err(StdError::generic_err(format!(
-            "Assert native token received failed for asset: {}",
-            asset
-        )));
+        return Err(
+            StdError::generic_err(
+                format!("Assert native token received failed for asset: {}", asset)
+            )
+        );
     }
     Ok(())
 }
@@ -87,15 +96,16 @@ pub fn assert_native_token_received(info: &MessageInfo, asset: &Asset) -> StdRes
 /// sent in `info.funds`.
 pub fn assert_native_tokens_received(
     info: &MessageInfo,
-    assets: &AssetList,
+    assets: &AssetList
 ) -> StdResult<Vec<Coin>> {
     let coins = assert_only_native_coins(assets)?;
     for coin in &coins {
         if !info.funds.contains(&coin) {
-            return Err(StdError::generic_err(format!(
-                "Assert native token received failed for asset: {}",
-                coin
-            )));
+            return Err(
+                StdError::generic_err(
+                    format!("Assert native token received failed for asset: {}", coin)
+                )
+            );
         }
     }
     Ok(info.funds.clone())
@@ -108,14 +118,15 @@ pub fn assert_native_tokens_received(
 /// Returns a response with the transfer_from message if the asset is a Cw20.
 /// Returns an empty response if the asset is a native token.
 pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<Response> {
-    let event = Event::new("apollo/utils/assets").add_attributes(vec![
-        attr("action", "receive_asset"),
-        attr("asset", asset.to_string()),
-    ]);
+    let event = Event::new("apollo/utils/assets").add_attributes(
+        vec![attr("action", "receive_asset"), attr("asset", asset.to_string())]
+    );
     match &asset.info {
         AssetInfo::Cw20(_coin) => {
-            let msg =
-                asset.transfer_from_msg(info.sender.clone(), env.contract.address.to_string())?;
+            let msg = asset.transfer_from_msg(
+                info.sender.clone(),
+                env.contract.address.to_string()
+            )?;
             Ok(Response::new().add_message(msg).add_event(event))
         }
         AssetInfo::Native(_token) => {
@@ -132,8 +143,9 @@ pub fn receive_asset(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
 fn receive_asset_msg(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<Option<CosmosMsg>> {
     match &asset.info {
         AssetInfo::Cw20(_coin) => {
-            Some(asset.transfer_from_msg(info.sender.clone(), env.contract.address.to_string()))
-                .transpose()
+            Some(
+                asset.transfer_from_msg(info.sender.clone(), env.contract.address.to_string())
+            ).transpose()
         }
         AssetInfo::Native(_token) => {
             //Here we just assert that the native token was sent with the contract call
@@ -147,10 +159,9 @@ fn receive_asset_msg(info: &MessageInfo, env: &Env, asset: &Asset) -> StdResult<
 /// a `Response` with a messages that transfers all Cw20 tokens to
 /// `env.contract.address`.
 pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdResult<Response> {
-    let event = Event::new("apollo/utils/assets").add_attributes(vec![
-        attr("action", "receive_assets"),
-        attr("assets", assets.to_string()),
-    ]);
+    let event = Event::new("apollo/utils/assets").add_attributes(
+        vec![attr("action", "receive_assets"), attr("assets", assets.to_string())]
+    );
     let msgs = assets
         .into_iter()
         .map(|asset| receive_asset_msg(info, env, asset))
@@ -169,10 +180,7 @@ pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdR
 /// Returns a `StdResult<Vec<Coin>>` containing the assets as coins if they are all
 /// native tokens.
 pub fn assert_only_native_coins(assets: &AssetList) -> StdResult<Vec<Coin>> {
-    assets
-        .into_iter()
-        .map(assert_native_coin)
-        .collect::<StdResult<Vec<Coin>>>()
+    assets.into_iter().map(assert_native_coin).collect::<StdResult<Vec<Coin>>>()
 }
 
 /// Assert that an asset is a native token.
@@ -215,9 +223,11 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{testing::mock_info, Addr, Coin};
-    use cw_asset::{Asset, AssetInfo, AssetList};
+    use cosmwasm_std::testing::{MockApi, mock_env};
+    use cosmwasm_std::{ testing::mock_info, Addr, Coin };
+    use cw_asset::{ Asset, AssetInfo, AssetList, AssetInfoBase };
     use test_case::test_case;
+    use cosmwasm_std::Uint128;
 
     #[test_case(
         vec![Coin::new(1000, "uosmo"), Coin::new(1000, "uatom")].into(),
@@ -258,5 +268,215 @@ mod tests {
         let info = mock_info("addr", &funds);
         assert_native_tokens_received(&info, &assets)?;
         Ok(())
+    }
+
+    #[test]
+    fn test_receive_asset_cw20() {
+        let funds = vec![Coin::new(1000, "uosmo")];
+        let info = mock_info("addr", &funds);
+        let env = mock_env();
+        let asset = Asset::new(AssetInfo::cw20(Addr::unchecked("apollo")), 1000u128);
+        let result = receive_asset(&info, &env, &asset);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response.messages.len(), 1);
+        assert_eq!(response.events.len(), 1);
+    }
+
+    #[test]
+    fn test_receive_asset_native() {
+        let funds = vec![Coin::new(1000, "uosmo")];
+        let info = mock_info("addr", &funds);
+        let env = mock_env();
+        let asset = Asset::new(AssetInfo::Native("uosmo".into()), 1000u128);
+        let result = receive_asset(&info, &env, &asset);
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response.messages.len(), 0);
+        assert_eq!(response.events.len(), 1);
+    }
+
+    #[test]
+    fn test_assert_native_token_received() {
+        // Test case where the native token was received
+        let info = MessageInfo {
+            funds: vec![Coin::new(10, "uosmo")],
+            sender: Addr::unchecked("sender"),
+        };
+        let asset = Asset {
+            info: AssetInfoBase::Native(String::from("uosmo")),
+            amount: Uint128::new(10),
+        };
+        assert!(assert_native_token_received(&info, &asset).is_ok());
+
+        // Test case where the native token was not received
+        let info = MessageInfo {
+            funds: vec![Coin::new(20, "uosmo")],
+            sender: Addr::unchecked("sender2"),
+        };
+        let asset = Asset {
+            info: AssetInfoBase::Native(String::from("uion")),
+            amount: Uint128::new(20),
+        };
+        assert!(assert_native_token_received(&info, &asset).is_err());
+
+        // Test case where quiantity of native token was not received
+        let info = MessageInfo {
+            funds: vec![Coin::new(20, "uosmo")],
+            sender: Addr::unchecked("sender2"),
+        };
+        let asset = Asset {
+            info: AssetInfoBase::Native(String::from("uosmo")),
+            amount: Uint128::new(10),
+        };
+        assert!(assert_native_token_received(&info, &asset).is_err());
+    }
+
+    #[test]
+    fn test_separate_natives_and_cw20s() {
+        let api = MockApi::default();
+        let coins = &vec![Coin::new(10, "uosmo"), Coin::new(20, "uatom"), Coin::new(10, "uion")];
+        let cw20s = &vec![
+            Cw20Coin { address: "osmo1".to_owned(), amount: Uint128::new(100) },
+            Cw20Coin { address: "osmo2".to_owned(), amount: Uint128::new(200) },
+            Cw20Coin { address: "osmo3".to_owned(), amount: Uint128::new(300) }
+        ];
+
+        let asset_list = to_asset_list(&api, Some(coins), Some(cw20s)).unwrap();
+        let (separated_coins, separated_cw20s) = separate_natives_and_cw20s(&asset_list);
+
+        assert_eq!(separated_coins.len(), coins.len());
+        assert_eq!(separated_cw20s.len(), cw20s.len());
+        for coin in coins.iter() {
+            assert!(separated_coins.contains(coin));
+        }
+        for cw20 in cw20s.iter() {
+            assert!(separated_cw20s.contains(cw20));
+        }
+    }
+
+    #[test]
+    fn test_separate_natives_and_cw20s_with_empty_inputs() {
+        let api = MockApi::default();
+        let coins = None;
+        let cw20s = None;
+
+        let empty_asset_list = to_asset_list(&api, coins, cw20s).unwrap();
+        let (coins, cw20s) = separate_natives_and_cw20s(&empty_asset_list);
+
+        assert!(coins.len() == 0);
+        assert!(cw20s.len() == 0);
+    }
+
+    #[test]
+    fn test_to_asset_list() {
+        let api = MockApi::default();
+        let coins = &vec![Coin::new(10, "uosmo"), Coin::new(20, "uatom"), Coin::new(10, "uion")];
+        let cw20s = &vec![
+            Cw20Coin { address: "osmo1".to_owned(), amount: Uint128::new(100) },
+            Cw20Coin { address: "osmo2".to_owned(), amount: Uint128::new(200) },
+            Cw20Coin { address: "osmo3".to_owned(), amount: Uint128::new(300) }
+        ];
+
+        let assets = to_asset_list(&api, Some(coins), Some(cw20s)).unwrap();
+
+        assert_eq!(assets.len(), coins.len() + cw20s.len());
+        for coin in coins.iter() {
+            assert!(assets.find(&AssetInfo::Native(coin.denom.to_owned())).is_some());
+        }
+        for cw20 in cw20s.iter() {
+            assert!(
+                assets.find(&AssetInfo::Cw20(api.addr_validate(&cw20.address).unwrap())).is_some()
+            );
+        }
+    }
+
+    #[test]
+    fn test_to_asset_list_with_empty_inputs() {
+        let api = MockApi::default();
+        let coins = None;
+        let cw20s = None;
+
+        let assets = to_asset_list(&api, coins, cw20s).unwrap();
+
+        assert!(assets.len() == 0);
+    }
+
+    #[test]
+    fn test_merge_assets_with_no_duplicates() {
+        let mut asset_list = AssetList::new();
+
+        asset_list
+            .add(
+                &(Asset {
+                    info: AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1"))),
+                    amount: Uint128::new(100),
+                })
+            )
+            .unwrap();
+        asset_list
+            .add(
+                &(Asset {
+                    info: AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 2"))),
+                    amount: Uint128::new(200),
+                })
+            )
+            .unwrap();
+        asset_list
+            .add(
+                &(Asset {
+                    info: AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 3"))),
+                    amount: Uint128::new(300),
+                })
+            )
+            .unwrap();
+
+        let merged_assets = merge_assets(&asset_list).unwrap();
+
+        assert_eq!(merged_assets.len(), 3);
+        assert_eq!(
+            merged_assets.to_vec()[0].info,
+            AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1")))
+        );
+        assert_eq!(merged_assets.to_vec()[0].amount, Uint128::new(100));
+        assert_eq!(
+            merged_assets.to_vec()[1].info,
+            AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 2")))
+        );
+        assert_eq!(merged_assets.to_vec()[1].amount, Uint128::new(200));
+        assert_eq!(
+            merged_assets.to_vec()[2].info,
+            AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 3")))
+        );
+        assert_eq!(merged_assets.to_vec()[2].amount, Uint128::new(300));
+    }
+
+    #[test]
+    fn test_merge_assets_with_duplicates() {
+        let mut asset_list = AssetList::new();
+        asset_list
+            .add(
+                &(Asset {
+                    info: AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1"))),
+                    amount: Uint128::new(100),
+                })
+            )
+            .unwrap();
+        asset_list
+            .add(
+                &(Asset {
+                    info: AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1"))),
+                    amount: Uint128::new(200),
+                })
+            )
+            .unwrap();
+        let merged_assets = merge_assets(&asset_list).unwrap();
+
+        assert_eq!(merged_assets.len(), 1);
+        assert_eq!(
+            merged_assets.to_vec()[0].info,
+            AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1")))
+        );
+        assert_eq!(merged_assets.to_vec()[0].amount, Uint128::new(300));
     }
 }
