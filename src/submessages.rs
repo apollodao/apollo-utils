@@ -1,27 +1,32 @@
 use std::str::FromStr;
 
 use core::fmt::Debug;
-use cosmwasm_std::{ Event, StdError, StdResult, SubMsgResponse };
+use cosmwasm_std::{Event, StdError, StdResult, SubMsgResponse};
 
 /// Parse an attribute string from an [`Event`]
 pub fn parse_attribute_value<T: FromStr<Err = E>, E: Debug>(
     event: &Event,
-    attr_key: &str
+    attr_key: &str,
 ) -> StdResult<T> {
     T::from_str(
-        event.attributes
+        event
+            .attributes
             .iter()
             .find(|attr| attr.key == attr_key)
             .ok_or_else(|| {
-                StdError::generic_err(
-                    format!("Event {} event does not contain {} attribute", event.ty, attr_key)
-                )
+                StdError::generic_err(format!(
+                    "Event {} event does not contain {} attribute",
+                    event.ty, attr_key
+                ))
             })?
-            .value.as_str()
-    ).map_err(|e| {
-        StdError::generic_err(
-            format!("Failed to parse attribute value from string. Error: {:?}", e)
-        )
+            .value
+            .as_str(),
+    )
+    .map_err(|e| {
+        StdError::generic_err(format!(
+            "Failed to parse attribute value from string. Error: {:?}",
+            e
+        ))
     })
 }
 
@@ -32,7 +37,10 @@ pub fn find_event<'a>(res: &'a SubMsgResponse, event_type: &str) -> StdResult<&'
     res.events
         .iter()
         .find(|event| event.ty == event_type)
-        .ok_or(StdError::generic_err(format!("No `{}` event found", event_type)))
+        .ok_or(StdError::generic_err(format!(
+            "No `{}` event found",
+            event_type
+        )))
 }
 
 #[cfg(test)]
@@ -64,7 +72,10 @@ mod tests {
         let result = find_event(&res, "event_type_3");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err.to_string(), "Generic error: No `event_type_3` event found");
+        assert_eq!(
+            err.to_string(),
+            "Generic error: No `event_type_3` event found"
+        );
     }
 
     #[test]
@@ -90,7 +101,10 @@ mod tests {
         let result = parse_attribute_value::<i32, ParseIntError>(&event, "key_3");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err.to_string(), "Generic error: Event event_type event does not contain key_3 attribute");
+        assert_eq!(
+            err.to_string(),
+            "Generic error: Event event_type event does not contain key_3 attribute"
+        );
     }
 
     #[test]

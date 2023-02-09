@@ -4,9 +4,10 @@ pub trait TryIntoElementwise<A, B: TryInto<A, Error = E>, E>: IntoIterator {
     fn try_into_elementwise(self) -> Result<Vec<A>, E>;
 }
 
-impl<A, B, E, I> TryIntoElementwise<A, B, E>
-    for I
-    where B: TryInto<A, Error = E>, I: IntoIterator<Item = B>
+impl<A, B, E, I> TryIntoElementwise<A, B, E> for I
+where
+    B: TryInto<A, Error = E>,
+    I: IntoIterator<Item = B>,
 {
     fn try_into_elementwise(self) -> Result<Vec<A>, E> {
         self.into_iter()
@@ -21,19 +22,21 @@ pub trait IntoElementwise<A, B: Into<A>>: IntoIterator {
     fn into_elementwise(self) -> Vec<A>;
 }
 
-impl<A, B, I> IntoElementwise<A, B> for I where B: Into<A>, I: IntoIterator<Item = B> {
+impl<A, B, I> IntoElementwise<A, B> for I
+where
+    B: Into<A>,
+    I: IntoIterator<Item = B>,
+{
     fn into_elementwise(self) -> Vec<A> {
-        self.into_iter()
-            .map(|x| x.into())
-            .collect()
+        self.into_iter().map(|x| x.into()).collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::string::ParseError;
-    use crate::iterators::IntoElementwise;
     use super::TryIntoElementwise;
+    use crate::iterators::IntoElementwise;
+    use std::string::ParseError;
 
     #[test]
     fn test_try_into_elementwise() {
