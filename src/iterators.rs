@@ -36,19 +36,24 @@ where
 mod tests {
     use super::TryIntoElementwise;
     use crate::iterators::IntoElementwise;
-    use std::string::ParseError;
+    use std::num::TryFromIntError;
+    use test_case::test_case;
 
-    #[test]
-    fn test_try_into_elementwise() {
-        let v = vec!["1", "2", "3"];
-        let result: Result<Vec<&str>, ParseError> = v.into_iter().try_into_elementwise();
-        assert_eq!(result.unwrap(), vec!["1", "2", "3"]);
+    #[test_case(
+        vec![1u64, 2u64, 3u64] => Ok(vec![1u32, 2u32, 3u32]);
+        "Element wise OK")]
+    #[test_case(
+        vec![u64::MAX, 2u64, 3u64] => matches Err(_);
+            "Element wise Fail")]
+    fn test_try_into_elementwise(input: Vec<u64>) -> Result<Vec<u32>, TryFromIntError> {
+        // let result: Result<Vec<u32>, ParseError> =
+        input.into_iter().try_into_elementwise()
     }
 
-    #[test]
-    fn test_into_elementwise() {
-        let v = vec!["1", "2", "3"];
-        let result: Vec<&str> = v.into_elementwise();
-        assert_eq!(result, vec!["1", "2", "3"]);
+    #[test_case(
+        vec![1u32, 2u32, 3u32] => vec![1u64, 2u64, 3u64];
+        "Element wise OK")]
+    fn test_into_elementwise(input: Vec<u32>) -> Vec<u64> {
+        input.into_elementwise()
     }
 }

@@ -17,6 +17,7 @@ pub fn merge_responses(responses: Vec<Response>) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cosmwasm_std::{coins, BankMsg};
 
     #[test]
     fn test_merge_empty_responses() {
@@ -25,5 +26,46 @@ mod tests {
         assert!(merged.attributes.is_empty());
         assert!(merged.events.is_empty());
         assert!(merged.messages.is_empty());
+    }
+
+    #[test]
+    fn test_merge_responses() {
+        let resp1: Response = Response::new()
+            .add_attributes(vec![("key1", "value1"), ("send", "1uosmo")])
+            .add_messages(vec![BankMsg::Send {
+                to_address: String::from("recipient"),
+                amount: coins(1, "uosmo"),
+            }])
+            .set_data(b"data");
+        let resp2: Response = Response::new()
+            .add_attributes(vec![("key2", "value2"), ("send", "2uosmo")])
+            .add_message(BankMsg::Send {
+                to_address: String::from("recipient"),
+                amount: coins(2, "uosmo"),
+            })
+            .set_data(b"data2");
+        let merged = merge_responses(vec![resp1, resp2]);
+
+        let expected_response: Response = Response::new()
+            .add_attributes(vec![
+                ("key1", "value1"),
+                ("send", "1uosmo"),
+                ("key2", "value2"),
+                ("send", "2uosmo"),
+            ])
+            .add_messages(vec![
+                BankMsg::Send {
+                    to_address: String::from("recipient"),
+                    amount: coins(1, "uosmo"),
+                },
+                BankMsg::Send {
+                    to_address: String::from("recipient"),
+                    amount: coins(2, "uosmo"),
+                },
+            ]);
+        assert_eq!(merged, expected_response);
+        //.set_data(b"data+data2?");
+        // TODO: Review this. Data should be None
+        assert!(merged.data.is_none());
     }
 }

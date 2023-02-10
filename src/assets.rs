@@ -216,8 +216,11 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_env, MockApi};
-    use cosmwasm_std::Uint128;
+    use cosmwasm_std::StdError::GenericErr;
     use cosmwasm_std::{testing::mock_info, Addr, Coin};
+    use cosmwasm_std::{to_binary, Uint128};
+    use cosmwasm_std::{CosmosMsg::Wasm, ReplyOn::Never, SubMsg, WasmMsg::Execute};
+    use cw20::Cw20ExecuteMsg;
     use cw_asset::{Asset, AssetInfo, AssetInfoBase, AssetList};
     use test_case::test_case;
 
@@ -271,8 +274,33 @@ mod tests {
         let result = receive_asset(&info, &env, &asset);
         assert!(result.is_ok());
         let response = result.unwrap();
+
+        let expected_events = vec![Event::new("apollo/utils/assets").add_attributes(vec![
+            attr("action", "receive_asset"),
+            attr("asset", "apollo:1000"),
+        ])];
+
+        let expected_messages = vec![SubMsg {
+            id: 0,
+            msg: Wasm(Execute {
+                contract_addr: String::from("apollo"),
+                msg: to_binary(
+                    &(Cw20ExecuteMsg::TransferFrom {
+                        owner: String::from("addr"),
+                        recipient: String::from("cosmos2contract"),
+                        amount: Uint128::new(1000),
+                    }),
+                )
+                .unwrap(),
+                funds: vec![],
+            }),
+            gas_limit: None,
+            reply_on: Never,
+        }];
         assert_eq!(response.messages.len(), 1);
+        assert_eq!(response.messages[0], expected_messages[0]);
         assert_eq!(response.events.len(), 1);
+        assert_eq!(response.events, expected_events);
     }
 
     #[test]
@@ -288,40 +316,30 @@ mod tests {
         assert_eq!(response.events.len(), 1);
     }
 
-    #[test]
-    fn test_assert_native_token_received() {
-        // Test case where the native token was received
+    #[test_case(
+        Asset {
+            info: AssetInfoBase::Native(String::from("uosmo")),
+            amount: Uint128::new(10),
+        },vec![Coin::new(10, "uosmo")] => Ok(());
+        "Native token received")]
+    #[test_case(
+        Asset {
+            info: AssetInfoBase::Native(String::from("uion")),
+            amount: Uint128::new(10),
+        },vec![Coin::new(10, "uosmo")] => Err(GenericErr { msg: String::from("Assert native token received failed for asset: uion:10") });
+            "Native token not received")]
+    #[test_case(
+        Asset {
+            info: AssetInfoBase::Native(String::from("uosmo")),
+            amount: Uint128::new(10),
+        },vec![Coin::new(20, "uosmo")] => Err(GenericErr { msg: String::from("Assert native token received failed for asset: uosmo:10") });
+                "Native token quantity mismatch")]
+    fn test_assert_native_token_received(asset: Asset, funds: Vec<Coin>) -> StdResult<()> {
         let info = MessageInfo {
-            funds: vec![Coin::new(10, "uosmo")],
+            funds: funds,
             sender: Addr::unchecked("sender"),
         };
-        let asset = Asset {
-            info: AssetInfoBase::Native(String::from("uosmo")),
-            amount: Uint128::new(10),
-        };
-        assert!(assert_native_token_received(&info, &asset).is_ok());
-
-        // Test case where the native token was not received
-        let info = MessageInfo {
-            funds: vec![Coin::new(20, "uosmo")],
-            sender: Addr::unchecked("sender2"),
-        };
-        let asset = Asset {
-            info: AssetInfoBase::Native(String::from("uion")),
-            amount: Uint128::new(20),
-        };
-        assert!(assert_native_token_received(&info, &asset).is_err());
-
-        // Test case where quiantity of native token was not received
-        let info = MessageInfo {
-            funds: vec![Coin::new(20, "uosmo")],
-            sender: Addr::unchecked("sender2"),
-        };
-        let asset = Asset {
-            info: AssetInfoBase::Native(String::from("uosmo")),
-            amount: Uint128::new(10),
-        };
-        assert!(assert_native_token_received(&info, &asset).is_err());
+        assert_native_token_received(&info, &asset)
     }
 
     #[test]
