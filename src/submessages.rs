@@ -32,7 +32,8 @@ pub fn parse_attribute_value<T: FromStr<Err = E>, E: Debug>(
 
 /// Find event from SubMsg response
 ///
-/// Returns a [`StdResult`] containing reference to the event if found otherwise [`StdError`]
+/// Returns a [`StdResult`] containing reference to the event if found otherwise
+/// [`StdError`]
 pub fn find_event<'a>(res: &'a SubMsgResponse, event_type: &str) -> StdResult<&'a Event> {
     res.events
         .iter()
