@@ -1,8 +1,8 @@
+use apollo_cw_asset::{Asset, AssetInfo, AssetList};
 use cosmwasm_std::{
     attr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError, StdResult,
 };
 use cw20::Cw20Coin;
-use cw_asset::{Asset, AssetInfo, AssetList};
 
 /// Create an AssetList from a `Vec<Coin>` and an optional `Vec<Cw20Coin>`.
 /// Removes duplicates from each of the inputs.
@@ -59,7 +59,8 @@ pub fn separate_natives_and_cw20s(assets: &AssetList) -> (Vec<Coin>, Vec<Cw20Coi
     (coins, cw20s)
 }
 
-/// Assert that a specific native token in the form of an `Asset` was sent to the contract.
+/// Assert that a specific native token in the form of an `Asset` was sent to
+/// the contract.
 pub fn assert_native_token_received(info: &MessageInfo, asset: &Asset) -> StdResult<()> {
     let coin: Coin = asset.try_into()?;
 
@@ -166,8 +167,8 @@ pub fn receive_assets(info: &MessageInfo, env: &Env, assets: &AssetList) -> StdR
 ///
 /// ### Returns
 /// Returns an error if any of the assets are not native tokens.
-/// Returns a `StdResult<Vec<Coin>>` containing the assets as coins if they are all
-/// native tokens.
+/// Returns a `StdResult<Vec<Coin>>` containing the assets as coins if they are
+/// all native tokens.
 pub fn assert_only_native_coins(assets: &AssetList) -> StdResult<Vec<Coin>> {
     assets
         .into_iter()
@@ -179,7 +180,8 @@ pub fn assert_only_native_coins(assets: &AssetList) -> StdResult<Vec<Coin>> {
 ///
 /// ### Returns
 /// Returns an error if the asset is not a native token.
-/// Returns a `StdResult<Coin>` containing the asset as a coin if it is a native token.
+/// Returns a `StdResult<Coin>` containing the asset as a coin if it is a native
+/// token.
 pub fn assert_native_coin(asset: &Asset) -> StdResult<Coin> {
     match asset.info {
         AssetInfo::Native(_) => asset.try_into(),
@@ -215,13 +217,14 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_env, MockApi};
+    use apollo_cw_asset::{Asset, AssetInfo, AssetInfoBase, AssetList};
+    use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
+    use cosmwasm_std::CosmosMsg::Wasm;
+    use cosmwasm_std::ReplyOn::Never;
     use cosmwasm_std::StdError::GenericErr;
-    use cosmwasm_std::{testing::mock_info, Addr, Coin};
-    use cosmwasm_std::{to_binary, Uint128};
-    use cosmwasm_std::{CosmosMsg::Wasm, ReplyOn::Never, SubMsg, WasmMsg::Execute};
+    use cosmwasm_std::WasmMsg::Execute;
+    use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, Uint128};
     use cw20::Cw20ExecuteMsg;
-    use cw_asset::{Asset, AssetInfo, AssetInfoBase, AssetList};
     use test_case::test_case;
 
     #[test_case(
