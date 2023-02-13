@@ -2,14 +2,22 @@
 name = "apollo-utils"
 version = "0.1.0"
 edition = "2021"
+license = "MPL-2.0"
+description = "Useful helper functions for writing CosmWasm smart contracts."
+homepage = "https://apollo.farm/"
+repository = "https://github.com/apollodao/apollo-utils"
+documentation = "https://docs.rs/apollo-utils"
+authors = ["Apollo DAO Devs <shared@apollo.farm>"]
+readme = "README.md"
+keywords = ["cosmwasm", "smart-contract", "cw20", "apollo", "web3"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 cosmwasm-std = "1.2.1"
 cosmwasm-schema = "1.2.1"
-cw20 = "0.16"
+cw20 = "1.0.1"
 apollo-cw-asset = "0.1.0"
 
 [dev-dependencies]
-test-case = "2.2.2"
+test-case = "3.0.0"
