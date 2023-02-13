@@ -16,8 +16,8 @@ keywords = ["cosmwasm", "smart-contract", "cw20", "apollo", "web3"]
 [dependencies]
 cosmwasm-std = "1.2.1"
 cosmwasm-schema = "1.2.1"
-cw20 = "0.16"
+cw20 = "1.0.1"
 apollo-cw-asset = "0.1.0"
 
 [dev-dependencies]
-test-case = "2.2.2"
+test-case = "3.0.0"
