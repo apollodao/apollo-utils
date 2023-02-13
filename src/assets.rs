@@ -1,8 +1,8 @@
+use apollo_cw_asset::{Asset, AssetInfo, AssetList};
 use cosmwasm_std::{
     attr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError, StdResult,
 };
 use cw20::Cw20Coin;
-use cw_asset::{Asset, AssetInfo, AssetList};
 
 /// Create an AssetList from a `Vec<Coin>` and an optional `Vec<Cw20Coin>`.
 /// Removes duplicates from each of the inputs.
@@ -217,6 +217,7 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
 #[cfg(test)]
 mod tests {
     use super::*;
+    use apollo_cw_asset::{Asset, AssetInfo, AssetInfoBase, AssetList};
     use cosmwasm_std::testing::{mock_env, mock_info, MockApi};
     use cosmwasm_std::CosmosMsg::Wasm;
     use cosmwasm_std::ReplyOn::Never;
@@ -224,7 +225,6 @@ mod tests {
     use cosmwasm_std::WasmMsg::Execute;
     use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, Uint128};
     use cw20::Cw20ExecuteMsg;
-    use cw_asset::{Asset, AssetInfo, AssetInfoBase, AssetList};
     use test_case::test_case;
 
     #[test_case(
