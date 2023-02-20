@@ -1,8 +1,9 @@
 use apollo_cw_asset::{Asset, AssetInfo, AssetList};
 use cosmwasm_std::{
-    attr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError, StdResult,
+    attr, to_binary, Addr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError,
+    StdResult, WasmMsg,
 };
-use cw20::Cw20Coin;
+use cw20::{Cw20Coin, Cw20ExecuteMsg};
 
 /// Create an AssetList from a `Vec<Coin>` and an optional `Vec<Cw20Coin>`.
 /// Removes duplicates from each of the inputs.
@@ -214,6 +215,35 @@ pub fn merge_assets<'a, A: Into<&'a AssetList>>(assets: A) -> StdResult<AssetLis
     Ok(merged)
 }
 
+/// Separate native tokens and Cw20's in an `AssetList` and return messages
+/// for increasing allowance for the Cw20's.
+///
+/// ### Returns
+/// Returns a `StdResult<(Vec<CosmosMsg>, Vec<Coin>)>` containing the messages
+/// for increasing allowance and the native tokens.
+pub fn increase_allowance_msgs(
+    env: &Env,
+    assets: &AssetList,
+    recipient: Addr,
+) -> StdResult<(Vec<CosmosMsg>, Vec<Coin>)> {
+    let (funds, cw20s) = separate_natives_and_cw20s(assets);
+    let msgs: Vec<CosmosMsg> = cw20s
+        .into_iter()
+        .map(|x| {
+            Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: x.address,
+                msg: to_binary(&Cw20ExecuteMsg::IncreaseAllowance {
+                    spender: recipient.to_string(),
+                    amount: x.amount,
+                    expires: Some(cw20::Expiration::AtHeight(env.block.height + 1)),
+                })?,
+                funds: vec![],
+            }))
+        })
+        .collect::<StdResult<Vec<_>>>()?;
+    Ok((msgs, funds))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,7 +254,7 @@ mod tests {
     use cosmwasm_std::StdError::GenericErr;
     use cosmwasm_std::WasmMsg::Execute;
     use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, Uint128};
-    use cw20::Cw20ExecuteMsg;
+    use cw20::{Cw20ExecuteMsg, Expiration};
     use test_case::test_case;
 
     #[test_case(
@@ -519,5 +549,39 @@ mod tests {
             AssetInfoBase::Cw20(Addr::unchecked(String::from("Asset 1")))
         );
         assert_eq!(merged_assets.to_vec()[0].amount, Uint128::new(300));
+    }
+
+    #[test]
+    fn test_increase_allowance_msgs() {
+        let env = mock_env();
+        let spender = Addr::unchecked(String::from("spender"));
+
+        let assets = AssetList::from(vec![
+            Asset::new(AssetInfo::Native("uatom".to_string()), Uint128::new(100)),
+            Asset::new(
+                AssetInfo::Cw20(Addr::unchecked("cw20".to_string())),
+                Uint128::new(200),
+            ),
+        ]);
+        let (increase_allowance_msgs, funds) =
+            increase_allowance_msgs(&env, &assets, spender.clone()).unwrap();
+
+        assert_eq!(increase_allowance_msgs.len(), 1);
+        assert_eq!(
+            increase_allowance_msgs[0],
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: "cw20".to_string(),
+                funds: vec![],
+                msg: to_binary(&Cw20ExecuteMsg::IncreaseAllowance {
+                    spender: spender.to_string(),
+                    amount: Uint128::new(200),
+                    expires: Some(Expiration::AtHeight(env.block.height + 1)),
+                })
+                .unwrap(),
+            })
+        );
+        assert_eq!(funds.len(), 1);
+        assert_eq!(funds[0].amount, Uint128::new(100));
+        assert_eq!(funds[0].denom, "uatom");
     }
 }
