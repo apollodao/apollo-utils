@@ -17,8 +17,8 @@ pub fn coin_from_str(s: &str) -> Coin {
     Coin { denom, amount }
 }
 
-/// Validate string as a valid CosmosSDK denom according to regex `r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$"`
-/// See https://github.com/cosmos/cosmos-sdk/blob/7728516abfab950dc7a9120caad4870f1f962df5/types/coin.go#L865-L867
+/// Validate string as a valid CosmosSDK denom according to regex
+/// `r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$"`. See https://github.com/cosmos/cosmos-sdk/blob/7728516abfab950dc7a9120caad4870f1f962df5/types/coin.go#L865-L867
 pub fn validate_denom(input: &str) -> StdResult<()> {
     let re = Regex::new(r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$").unwrap();
 
