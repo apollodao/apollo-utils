@@ -1,4 +1,5 @@
-use cosmwasm_std::{Coin, Uint128};
+use cosmwasm_std::{Coin, StdError, StdResult, Uint128};
+use regex::Regex;
 
 /// Parse coins from string in format {amount}{denom}
 pub fn coin_from_str(s: &str) -> Coin {
@@ -14,6 +15,20 @@ pub fn coin_from_str(s: &str) -> Coin {
     let denom = s[idx..].to_string();
 
     Coin { denom, amount }
+}
+
+/// Validate string as a valid CosmosSDK denom according to regex `r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$"`
+/// See https://github.com/cosmos/cosmos-sdk/blob/7728516abfab950dc7a9120caad4870f1f962df5/types/coin.go#L865-L867
+pub fn validate_string(input: &str) -> StdResult<()> {
+    let re = Regex::new(r"^[a-zA-Z][a-zA-Z0-9/:._-]{2,127}$").unwrap();
+
+    if re.is_match(input) {
+        Ok(())
+    } else {
+        Err(StdError::generic_err(
+            "Provided string is not a valid CosmosSDK denom.",
+        ))
+    }
 }
 
 #[test]

@@ -18,6 +18,7 @@ cosmwasm-std = "1.2.1"
 cosmwasm-schema = "1.2.1"
 cw20 = "1.0.1"
 apollo-cw-asset = "0.1.0"
+regex = "1.9.5"
 
 [dev-dependencies]
 test-case = "3.0.0"
