@@ -31,7 +31,7 @@ macro_rules! contract_helper {
                 msg: impl Into<$execute_msg>,
                 funds: Vec<cosmwasm_std::Coin>,
             ) -> cosmwasm_std::StdResult<cosmwasm_std::CosmosMsg> {
-                let msg = cosmwasm_std::to_binary(&msg.into())?;
+                let msg = cosmwasm_std::to_json_binary(&msg.into())?;
                 Ok(cosmwasm_std::WasmMsg::Execute {
                     contract_addr: self.addr().into(),
                     msg,
