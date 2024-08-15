@@ -1,6 +1,6 @@
 use apollo_cw_asset::{Asset, AssetInfo, AssetList};
 use cosmwasm_std::{
-    attr, to_binary, Addr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError,
+    attr, to_json_binary, Addr, Api, Coin, CosmosMsg, Env, Event, MessageInfo, Response, StdError,
     StdResult, WasmMsg,
 };
 use cw20::{Cw20Coin, Cw20ExecuteMsg};
@@ -232,7 +232,7 @@ pub fn increase_allowance_msgs(
         .map(|x| {
             Ok(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: x.address,
-                msg: to_binary(&Cw20ExecuteMsg::IncreaseAllowance {
+                msg: to_json_binary(&Cw20ExecuteMsg::IncreaseAllowance {
                     spender: recipient.to_string(),
                     amount: x.amount,
                     expires: Some(cw20::Expiration::AtHeight(env.block.height + 1)),
@@ -253,7 +253,7 @@ mod tests {
     use cosmwasm_std::ReplyOn::Never;
     use cosmwasm_std::StdError::GenericErr;
     use cosmwasm_std::WasmMsg::Execute;
-    use cosmwasm_std::{to_binary, Addr, Coin, SubMsg, Uint128};
+    use cosmwasm_std::{to_json_binary, Addr, Coin, SubMsg, Uint128};
     use cw20::{Cw20ExecuteMsg, Expiration};
     use test_case::test_case;
 
@@ -317,7 +317,7 @@ mod tests {
             id: 0,
             msg: Wasm(Execute {
                 contract_addr: String::from("apollo"),
-                msg: to_binary(
+                msg: to_json_binary(
                     &(Cw20ExecuteMsg::TransferFrom {
                         owner: String::from("addr"),
                         recipient: String::from("cosmos2contract"),
@@ -572,7 +572,7 @@ mod tests {
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: "cw20".to_string(),
                 funds: vec![],
-                msg: to_binary(&Cw20ExecuteMsg::IncreaseAllowance {
+                msg: to_json_binary(&Cw20ExecuteMsg::IncreaseAllowance {
                     spender: spender.to_string(),
                     amount: Uint128::new(200),
                     expires: Some(Expiration::AtHeight(env.block.height + 1)),
